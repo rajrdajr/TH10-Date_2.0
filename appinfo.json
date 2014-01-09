@@ -1,0 +1,29 @@
+{
+  "uuid": "c42b0d34-5dc6-4779-87d6-3158c86808b0",
+  "shortName": "TH10-Date_2.0",
+  "longName": "TH10-Date_2.0",
+  "companyName": "Hudson & Jnm",
+  "versionCode": 1,
+  "versionLabel": "1.0.0",
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": [
+      {
+        "menuIcon": true,
+        "type": "png",
+        "name": "IMAGE_MENU_ICON",
+        "file": "images/menu_icon.png"
+      },
+      {
+        "type": "font",
+        "name": "FONT_GILLSANS_40",
+        "file": "fonts/GillSans-subset.ttc"
+      }
+    ]
+  }
+}
