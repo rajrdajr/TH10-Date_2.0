@@ -339,25 +339,32 @@ static void bg_layer_update(Layer *me, GContext * ctx) {
 #ifdef MOVE_SUBTLY
     // Keeping the date window between 4:00 and 5:00 is less noticeable, 
     // but the hands still block portions of the window.
-    // Move date box away from minute hand from 20 to 25-1/2 minutes
-    // Move date box away from hour hand from 3:30 to 5:30
+    // Move date box away from min. hand from  :20 to  :25-1/2 minutes
+    // Move date box away from hour hand from 3:30 to 5:23
+    // Put this in a bookmark to set the time in the Cloudpebble emulator:
+    // javascript:(function(){SharedPebble.getPebbleNow().set_time(new Date('2015-02-24T17:17:42').getTime());})()
+    // :42 allows emulator to update its clock and update watch face to setup test case.
+    // Useful times: 17:17:42, 17:20:42, 
     int mins = now.tm_min        * 60 + now.tm_sec;
     int hrs  =(now.tm_hour % 12) * 60 + now.tm_min;
     
-    bool mins1 = mins >= (20*60)      && mins <= (23*60 +  0); // min hand blocks top date
-    bool mins2 = mins >  (23*60 +  0) && mins <= (25*60 + 30); // min blocks bottom date
-    bool hrs1  =  hrs >= ( 3*60 + 45) && hrs  <= ( 4*60 + 28); // hr hand blocks top date
-    bool hrs2  =  hrs >  ( 4*60 + 28) && hrs  <= ( 5*60 + 25); // hr blocks bottom date
+    bool mins1 = mins >= (20*60)      && mins <= (23*60     ); // min hand blocks top date
+    bool mins2 = mins >  (23*60     ) && mins <= (25*60 + 30); // min blocks bottom date
+    bool hrs1  = hrs  >= ( 3*60 + 45) && hrs  <= ( 4*60 + 24); // hr hand blocks top date
+    bool hrs2  = hrs  >  ( 4*60 + 24) && hrs  <= ( 5*60 + 23); // hr blocks bottom date
+    bool hrs3  = hrs  >= ( 5*60 + 18) && hrs  <= ( 5*60 + 20); // special case w/ little space
     
-    if ( mins1 || hrs1 ){
-    	angle = ANGLE500;    // ~5:00 tick
-    	digit_set = digits5;
-    } else if ( mins2 || hrs2 ){
-    	angle = ANGLE400;     // move date to 4:00 tick
+    if ( hrs3 ){
+      angle = ANGLE430; // 4:30 tick works best from 5:20-5:22:30.
+      digit_set = digits;
+    } else if ( hrs2 || mins2 ){
+    	angle = ANGLE400; // move date to 4:00 tick
     	digit_set = digits4;
+    } else if ( hrs1 || mins1 ){
+    	angle = ANGLE500; // ~5:00 tick
+    	digit_set = digits5;
     }
 #endif
-
 
 #ifdef MOVE_LARGE    
     /*  Date at 4:30, 1:30, or 7:30. */
