@@ -26,6 +26,7 @@ static int use_24hour;
 #define INVERT_DATE false
 #define MOVE_SUBTLY true
 #undef MOVE_LARGE
+#define SHOW_SECONDS true
 
 // Dimensions of the watch face
 #define PEBBLE_SCREEN_WIDTH 144
@@ -262,6 +263,39 @@ static void hand_layer_update(Layer * me, GContext *ctx) {
     // Draw the center circle
     graphics_context_set_stroke_color(ctx, fg_color);
     graphics_draw_circle(ctx, GPoint(W/2,H/2), 3);
+  
+    if (SHOW_SECONDS){
+      const int32_t angle = (now.tm_sec * TRIG_MAX_ANGLE) / 60;
+      // Parametric equation of a circle: 
+      // x = cx + r * cos(a), y = cy + r * sin(a)
+      // also: http://developer.getpebble.com/docs/c/Foundation/Math/
+      if (now.tm_sec % 15 == 0 || now.tm_sec % 5 == 0){
+        graphics_context_set_fill_color(ctx, bg_color);    
+      }else{
+        graphics_context_set_fill_color(ctx, fg_color);  
+      }
+      // Keep the sec hand dot on screen by reducing the radius around 15 and 45
+      if ((now.tm_sec > 11 && now.tm_sec < 19) || (now.tm_sec > 41 && now.tm_sec < 49)){
+        int pivot = now.tm_sec < 19 ? 15 : 45;
+        int radius = R + (abs(pivot - now.tm_sec) <<1);
+        graphics_fill_circle(ctx, 
+                             GPoint(( sin_lookup(angle) * radius / TRIG_MAX_RATIO) + W/2,
+                                    (-cos_lookup(angle) * radius / TRIG_MAX_RATIO) + H/2), 
+                             2);
+      } else {
+        graphics_fill_circle(ctx, 
+                             GPoint(( sin_lookup(angle) * (R+8) / TRIG_MAX_RATIO) + W/2,
+                                    (-cos_lookup(angle) * (R+8) / TRIG_MAX_RATIO) + H/2), 
+                             2);
+      }
+      /* Alternate: invert ticks.
+      graphics_context_set_stroke_color(ctx, bg_color);
+      graphics_context_set_fill_color(ctx, bg_color);
+      
+      gpath_rotate_to(minor_tick_path, angle);
+      gpath_draw_outline(ctx, minor_tick_path);  
+      */
+    }
 }
 
 
@@ -273,21 +307,19 @@ static void bg_layer_update(Layer *me, GContext * ctx) {
     // Draw the outside marks
     for (int min = 0 ; min < 60 ; min++)
     {
-        const int angle = (min * TRIG_MAX_ANGLE) / 60;
-        if ((min % 15) == 0)
-        {
-            gpath_rotate_to(hour_tick_path, angle);
-            gpath_draw_filled(ctx, hour_tick_path);
+      const int angle = (min * TRIG_MAX_ANGLE) / 60;
+      if ((min % 15) == 0){
+        gpath_rotate_to(hour_tick_path, angle);
+        gpath_draw_filled(ctx, hour_tick_path);
+      } else {
+        if ((min % 5) == 0){
+          gpath_rotate_to(major_tick_path, angle);
+          gpath_draw_filled(ctx, major_tick_path);
         } else {
-            if ((min % 5) == 0)
-            {
-                gpath_rotate_to(major_tick_path, angle);
-                gpath_draw_filled(ctx, major_tick_path);
-            } else {
-                gpath_rotate_to(minor_tick_path, angle);
-                gpath_draw_outline(ctx, minor_tick_path);
-            }
+          gpath_rotate_to(minor_tick_path, angle);
+          gpath_draw_outline(ctx, minor_tick_path);
         }
+      }
     }
     
     // And the large labels
@@ -394,6 +426,7 @@ static void bg_layer_update(Layer *me, GContext * ctx) {
     gpath_rotate_to(mdbox_path, angle);
     
     graphics_context_set_fill_color(ctx, fg_color);
+  
     if (INVERT_DATE) {
     	gpath_draw_filled(ctx, mdbox_path);
     	graphics_context_set_stroke_color(ctx, bg_color);
@@ -410,23 +443,23 @@ static void bg_layer_update(Layer *me, GContext * ctx) {
             for (int j=0; j<4; j++) {
                 GPoint p1, p2;
                 int xoffset = ndigits * (4 - 9*d); // 4, -5
-				int yoffset = xoffset;
-				if (angle == ANGLE500){
-					yoffset = ndigits * (5 - 10*d); // 5, -5
-					xoffset = ndigits * (3 - 6*d) ; // 3, -3
-				}else if (angle == ANGLE400){
-					xoffset = ndigits * (5 - 10*d); // 6, -5
-					yoffset = ndigits * (3 - 6*d) ; // 3, -3
-				}
+              int yoffset = xoffset;
+              if (angle == ANGLE500){
+                yoffset = ndigits * (5 - 10*d); // 5, -5
+                xoffset = ndigits * (3 - 6*d) ; // 3, -3
+              }else if (angle == ANGLE400){
+                xoffset = ndigits * (5 - 10*d); // 6, -5
+                yoffset = ndigits * (3 - 6*d) ; // 3, -3
+              }
 
-                p1.x = digit_set[digit[d]].points[i].x + j%2 + xoffset; // 0, 1, 0, 1  
-                p1.y = digit_set[digit[d]].points[i].y + j/2 + yoffset; // 0, 0, 1, 1 
-                p2.x = digit_set[digit[d]].points[i+1].x + j%2 + xoffset;
-                p2.y = digit_set[digit[d]].points[i+1].y + j/2 + yoffset;
-                graphics_draw_line(ctx, p1, p2);
+              p1.x = digit_set[digit[d]].points[i].x + j%2 + xoffset; // 0, 1, 0, 1  
+              p1.y = digit_set[digit[d]].points[i].y + j/2 + yoffset; // 0, 0, 1, 1 
+              p2.x = digit_set[digit[d]].points[i+1].x + j%2 + xoffset;
+              p2.y = digit_set[digit[d]].points[i+1].y + j/2 + yoffset;
+              graphics_draw_line(ctx, p1, p2);
             }
         }
-	}
+    }
 }
 
 
@@ -437,7 +470,9 @@ static void handleTick(struct tm *tick_time, TimeUnits units_changed) {
 	}
     
   // Redraw every 15 seconds (or 10 seconds? 6 times/minute, 6 degrees/minute)
-  if ((now.tm_sec % 15) == 0){
+  if (SHOW_SECONDS){
+    layer_mark_dirty(hand_layer);
+  }else if ((now.tm_sec % 15) == 0){
 		layer_mark_dirty(hand_layer);
 	}
   
@@ -528,7 +563,7 @@ static void init() {
     rotate_digits(digits5, digits, ANGLE730);
 #endif
 
-    // Rotate orig digits[] *last*; this overwrites the original storage
+    // Rotate digits[] *last*; it overwrites the original's storage
     rotate_digits(digits,  digits, ANGLE430);
     	
     bg_layer = layer_create(GRect(0, 0, W, H));
