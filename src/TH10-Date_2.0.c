@@ -265,30 +265,32 @@ static void hand_layer_update(Layer * me, GContext *ctx) {
     graphics_draw_circle(ctx, GPoint(W/2,H/2), 3);
   
     if (SHOW_SECONDS){
+      int x, y, radius = R+8;
       const int32_t angle = (now.tm_sec * TRIG_MAX_ANGLE) / 60;
+      
+      // Keep the sec hand dot on screen by reducing the radius around :15 and :45
+      if (now.tm_sec > 10 && now.tm_sec < 20){
+        x = W - 2;
+      } else if (now.tm_sec > 40 && now.tm_sec < 50){
+        x = 2;
+      } else {
+        x = sin_lookup(angle) * radius / TRIG_MAX_RATIO + W/2;
+      }
+      
       // Parametric equation of a circle: 
       // x = cx + r * cos(a), y = cy + r * sin(a)
       // also: http://developer.getpebble.com/docs/c/Foundation/Math/
+      // x =  sin_lookup(angle) * radius / TRIG_MAX_RATIO + W/2;
+      y = -cos_lookup(angle) * radius / TRIG_MAX_RATIO + H/2;
+      graphics_context_set_fill_color(ctx, fg_color);
+      graphics_fill_circle(ctx, GPoint(x, y), 2);
+      
       if (now.tm_sec % 15 == 0 || now.tm_sec % 5 == 0){
-        graphics_context_set_fill_color(ctx, bg_color);    
-      }else{
-        graphics_context_set_fill_color(ctx, fg_color);  
+        graphics_context_set_stroke_color(ctx, bg_color);
+        graphics_draw_circle(ctx, GPoint(x, y), 3);
       }
-      // Keep the sec hand dot on screen by reducing the radius around 15 and 45
-      if ((now.tm_sec > 11 && now.tm_sec < 19) || (now.tm_sec > 41 && now.tm_sec < 49)){
-        int pivot = now.tm_sec < 19 ? 15 : 45;
-        int radius = R + (abs(pivot - now.tm_sec) <<1);
-        graphics_fill_circle(ctx, 
-                             GPoint(( sin_lookup(angle) * radius / TRIG_MAX_RATIO) + W/2,
-                                    (-cos_lookup(angle) * radius / TRIG_MAX_RATIO) + H/2), 
-                             2);
-      } else {
-        graphics_fill_circle(ctx, 
-                             GPoint(( sin_lookup(angle) * (R+8) / TRIG_MAX_RATIO) + W/2,
-                                    (-cos_lookup(angle) * (R+8) / TRIG_MAX_RATIO) + H/2), 
-                             2);
-      }
-      /* Alternate: invert ticks.
+      
+      /* Alternate second hand: invert ticks.
       graphics_context_set_stroke_color(ctx, bg_color);
       graphics_context_set_fill_color(ctx, bg_color);
       
